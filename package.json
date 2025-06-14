@@ -8,6 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@pixi/devtools": "^2.0.1",
     "pixi.js": "^7.4.3",
     "zustand": "^4.4.1"
   },

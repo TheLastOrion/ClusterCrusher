@@ -26,6 +26,10 @@ export class PreviewQueue extends Container {
       gemSprite.x += this.cellSize / 2;
       gemSprite.y += this.cellSize / 2;
 
+      const gemTargetSize = this.cellSize * 0.8;
+      const gemScale = gemTargetSize / gemSprite.texture.width;
+      gemSprite.scale.set(gemScale);
+
       this.addChild(gemSprite);
     }
 

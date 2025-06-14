@@ -4,16 +4,18 @@ import { Board } from './components/board';
 import { PreviewQueue } from './components/preview-queue';
 import { useGameStore } from './store';
 import { HUD } from './components/hud';
-
+import { initDevtools } from '@pixi/devtools';
 // Create Pixi Application
 const app = new Application({
   resizeTo: window,
   backgroundColor: 0x222222,
   antialias: true,
 });
-
 document.body.appendChild(app.view as HTMLCanvasElement);
 
+initDevtools({
+  app,
+});
 const state = useGameStore.getState();
 console.log('Initial moves:', state.moves);
 

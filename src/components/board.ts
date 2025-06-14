@@ -22,13 +22,20 @@ export class Board extends Container {
         const cellSprite = Sprite.from('/assets/cell.png');
         cellSprite.x = col * this.cellSize;
         cellSprite.y = row * this.cellSize;
+
+        const cellScale = this.cellSize / cellSprite.texture.width;
+        cellSprite.scale.set(cellScale);
         this.addChild(cellSprite);
 
         const randomColor = this.getRandomGemColor();
         const gemSprite = Sprite.from(`/assets/gem_${randomColor}.png`);
         gemSprite.x = col * this.cellSize + this.cellSize / 2;
         gemSprite.y = row * this.cellSize + this.cellSize / 2;
+        gemSprite.width = this.cellSize * 0.8;
+        const scale = (this.cellSize * 0.8) / gemSprite.texture.width;
+        gemSprite.scale.set(scale);
         gemSprite.anchor.set(0.5);
+
         this.addChild(gemSprite);
 
         rowCells.push({

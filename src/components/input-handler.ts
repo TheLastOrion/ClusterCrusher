@@ -1,12 +1,11 @@
-import { Container, Sprite } from 'pixi.js';
-import type { FederatedPointerEvent } from '@pixi/events';
 import { Board } from './board';
+import { Sprite, Container, FederatedPointerEvent } from 'pixi.js';
 
 export class InputHandler {
   private readonly _board: Board;
-  private draggedGem: Sprite | null = null;
-  private startX = 0;
-  private startY = 0;
+  private _draggedGem: Sprite | null = null;
+  private _startRow = 0;
+  private _startCol = 0;
 
   constructor(board: Board) {
     this._board = board;
@@ -22,36 +21,65 @@ export class InputHandler {
         gemSprite.interactive = true;
         gemSprite.cursor = 'pointer';
 
-        gemSprite.on('pointerdown', (e: FederatedPointerEvent) => this.onDragStart(e, gemSprite));
-        gemSprite.on('pointerup', () => this.onDragEnd());
-        gemSprite.on('pointerupoutside', () => this.onDragEnd());
-        gemSprite.on('pointermove', (e: FederatedPointerEvent) => this.onDragMove(e));
+        gemSprite.on('pointerdown', (e: FederatedPointerEvent) => this.onDragStart(e, gemSprite, row, col));
+        gemSprite.on('pointerup', (e: FederatedPointerEvent) => this.onDragEnd(e));
+        gemSprite.on('pointerupoutside', (e: FederatedPointerEvent) => this.onDragEnd(e));
       }
     }
   }
 
-  private onDragStart(e: FederatedPointerEvent, gem: Sprite) {
-    this.draggedGem = gem;
-    this.startX = gem.x;
-    this.startY = gem.y;
+  private onDragStart(e: FederatedPointerEvent, gem: Sprite, row: number, col: number) {
+    this._draggedGem = gem;
+    this._startRow = row;
+    this._startCol = col;
+
     gem.alpha = 0.7;
   }
 
-  private onDragMove(e: FederatedPointerEvent) {
-    if (!this.draggedGem) return;
+  private onDragEnd(e: FederatedPointerEvent) {
+    if (!this._draggedGem) return;
 
-    const newPosition = e.getLocalPosition(this.draggedGem.parent);
-    this.draggedGem.x = newPosition.x;
-    this.draggedGem.y = newPosition.y;
+    const globalPos = e.global;
+    const boardPos = this._board.toLocal(globalPos);
+
+    const targetCol = Math.floor(boardPos.x / this._board.cellSize);
+    const targetRow = Math.floor(boardPos.y / this._board.cellSize);
+
+    // Check bounds
+    if (
+      targetRow >= 0 && targetRow < this._board.gridSize &&
+      targetCol >= 0 && targetCol < this._board.gridSize
+    ) {
+      const distance = Math.abs(targetRow - this._startRow) + Math.abs(targetCol - this._startCol);
+
+      if (distance === 1) {
+        this.swapGems(this._startRow, this._startCol, targetRow, targetCol);
+      }
+    }
+
+    this.resetDraggedGem();
   }
 
-  private onDragEnd() {
-    if (!this.draggedGem) return;
+  private swapGems(row1: number, col1: number, row2: number, col2: number) {
+    const cell1 = this._board.getCell(row1, col1);
+    const cell2 = this._board.getCell(row2, col2);
 
-    this.draggedGem.x = this.startX;
-    this.draggedGem.y = this.startY;
-    this.draggedGem.alpha = 1;
+    // Swap sprites visually:
+    const tempPos = { x: cell1.sprite.x, y: cell1.sprite.y };
+    cell1.sprite.x = cell2.sprite.x;
+    cell1.sprite.y = cell2.sprite.y;
+    cell2.sprite.x = tempPos.x;
+    cell2.sprite.y = tempPos.y;
 
-    this.draggedGem = null;
+    // Swap internal references:
+    [this._board.cells[row1][col1], this._board.cells[row2][col2]] =
+      [this._board.cells[row2][col2], this._board.cells[row1][col1]];
+  }
+
+  private resetDraggedGem() {
+    if (this._draggedGem) {
+      this._draggedGem.alpha = 1;
+      this._draggedGem = null;
+    }
   }
 }

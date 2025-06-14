@@ -1,28 +1,40 @@
 import { Container, Sprite } from 'pixi.js';
 
 const GEM_COLORS = ['blue', 'green', 'pink'] as const;
-type GemColor = typeof GEM_COLORS[number];
+export type GemColor = typeof GEM_COLORS[number];
 
 export class PreviewQueue extends Container {
   private readonly _queueSize = 3;
   private readonly _cellSize = 80;
-  private queue: GemColor[] = [];
+  private _queue: GemColor[] = [];
 
   constructor() {
     super();
-    this.buildQueue();
+    this.generateInitialQueue();
+    this.rebuildQueueSprites();
   }
 
-  private buildQueue() {
-    this.queue = this.generateQueue();
+  private generateInitialQueue() {
+    for (let i = 0; i < this._queueSize; i++) {
+      this._queue.push(this.generateRandomGem());
+    }
+  }
 
-    for (let i = 0; i < this.queue.length; i++) {
-      const gemColor = this.queue[i];
+  private generateRandomGem(): GemColor {
+    const randomIndex = Math.floor(Math.random() * GEM_COLORS.length);
+    return GEM_COLORS[randomIndex];
+  }
+
+  public rebuildQueueSprites() {
+    this.removeChildren();
+
+    for (let i = 0; i < this._queue.length; i++) {
+      const gemColor = this._queue[i];
       const gemSprite = Sprite.from(`/assets/gem_${gemColor}.png`);
 
       gemSprite.x = 0;
       gemSprite.y = i * (this._cellSize + 10);
-      gemSprite.anchor.set(0.5, 0.5);
+      gemSprite.anchor.set(0.5);
       gemSprite.x += this._cellSize / 2;
       gemSprite.y += this._cellSize / 2;
 
@@ -30,20 +42,31 @@ export class PreviewQueue extends Container {
       const gemScale = gemTargetSize / gemSprite.texture.width;
       gemSprite.scale.set(gemScale);
 
+      // Interaction left to PlacementHandler
+      (gemSprite as any).queueIndex = i;
+
       this.addChild(gemSprite);
     }
 
-    // Position it top-right for now
     this.x = window.innerWidth - this._cellSize - 50;
     this.y = 50;
   }
 
-  private generateQueue(): GemColor[] {
-    const result: GemColor[] = [];
-    for (let i = 0; i < this._queueSize; i++) {
-      const randomIndex = Math.floor(Math.random() * GEM_COLORS.length);
-      result.push(GEM_COLORS[randomIndex]);
-    }
-    return result;
+  public consumeGem(index: number): GemColor {
+    const placedGem = this._queue[index];
+    this._queue[index] = this.generateRandomGem();
+    return placedGem;
+  }
+
+  public get cellSize() {
+    return this._cellSize;
+  }
+
+  public get queueSize() {
+    return this._queueSize;
+  }
+
+  public getGemSprite(index: number): Sprite {
+    return this.children[index] as Sprite;
   }
 }

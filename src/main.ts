@@ -6,6 +6,7 @@ import { useGameStore } from './store';
 import { HUD } from './components/hud';
 import { initDevtools } from '@pixi/devtools';
 import { InputHandler } from './components/input-handler';
+import { PlacementHandler } from './components/placement-handler';
 // Create Pixi Application
 const app = new Application({
   resizeTo: window,
@@ -30,10 +31,13 @@ const loaderScene = new LoaderScene(() => {
   const previewQueue = new PreviewQueue();
   app.stage.addChild(previewQueue);
 
-  const inputHandler = new InputHandler(board);
+  // const inputHandler = new InputHandler(board);
   
   const hud = new HUD();
   app.stage.addChild(hud);
+
+  const placementHandler = new PlacementHandler(board, previewQueue);
+
 
   // Optional live updating (can later be optimized via Zustand subscriptions)
   app.ticker.add(() => {

@@ -6,7 +6,7 @@ type GemColor = typeof GEM_COLORS[number];
 
 export class Board extends Container {
   private readonly _gridSize = 5;
-  private readonly _cellsize = 80;
+  private readonly _cellSize = 80;
   private _cells: Cell[][] = [];
 
   constructor() {
@@ -18,8 +18,23 @@ export class Board extends Container {
     return this._cells[row][col];
 }
 
+public get cells(): Cell[][] {
+  return this._cells;
+}
+public get cellSize() { return this._cellSize; }
+
+public getCellContainer(row: number, col: number): Container {
+  return this.children[row * this._gridSize + col] as Container;
+}
+
   public get gridSize() {
   return this._gridSize;
+}
+
+public placeGem(row: number, col: number, color: GemColor) {
+  const cell = this._cells[row][col];
+  cell.color = color;
+  cell.sprite.texture = Sprite.from(`/assets/gem_${color}.png`).texture;
 }
 
   private buildBoard() {
@@ -29,12 +44,12 @@ export class Board extends Container {
       for (let col = 0; col < this._gridSize; col++) {
 
         const cellContainer = new Container();
-        cellContainer.x = col * this._cellsize;
-        cellContainer.y = row * this._cellsize;
+        cellContainer.x = col * this._cellSize;
+        cellContainer.y = row * this._cellSize;
 
         // Background sprite
         const cellSprite = Sprite.from('/assets/cell.png');
-        const cellScale = this._cellsize / cellSprite.texture.width;
+        const cellScale = this._cellSize / cellSprite.texture.width;
         cellSprite.scale.set(cellScale);
         cellContainer.addChild(cellSprite);
 
@@ -42,10 +57,10 @@ export class Board extends Container {
         const randomColor = this.getRandomGemColor();
         const gemSprite = Sprite.from(`/assets/gem_${randomColor}.png`);
         gemSprite.anchor.set(0.5);
-        gemSprite.x = this._cellsize / 2;
-        gemSprite.y = this._cellsize / 2;
+        gemSprite.x = this._cellSize / 2;
+        gemSprite.y = this._cellSize / 2;
 
-        const gemTargetSize = this._cellsize * 0.8;
+        const gemTargetSize = this._cellSize * 0.8;
         const gemScale = gemTargetSize / gemSprite.texture.width;
         gemSprite.scale.set(gemScale);
 
@@ -64,8 +79,8 @@ export class Board extends Container {
     }
 
     // Center the entire board
-    this.x = (window.innerWidth - this._gridSize * this._cellsize) / 2;
-    this.y = (window.innerHeight - this._gridSize * this._cellsize) / 2;
+    this.x = (window.innerWidth - this._gridSize * this._cellSize) / 2;
+    this.y = (window.innerHeight - this._gridSize * this._cellSize) / 2;
   }
   private getRandomGemColor(): GemColor {
     const randomIndex = Math.floor(Math.random() * GEM_COLORS.length);

@@ -19,24 +19,32 @@ export class Board extends Container {
       const rowCells: Cell[] = [];
 
       for (let col = 0; col < this.gridSize; col++) {
-        const cellSprite = Sprite.from('/assets/cell.png');
-        cellSprite.x = col * this.cellSize;
-        cellSprite.y = row * this.cellSize;
+        // Create a container for this cell
+        const cellContainer = new Container();
+        cellContainer.x = col * this.cellSize;
+        cellContainer.y = row * this.cellSize;
 
+        // Background sprite
+        const cellSprite = Sprite.from('/assets/cell.png');
         const cellScale = this.cellSize / cellSprite.texture.width;
         cellSprite.scale.set(cellScale);
-        this.addChild(cellSprite);
+        cellContainer.addChild(cellSprite);
 
+        // Random gem
         const randomColor = this.getRandomGemColor();
         const gemSprite = Sprite.from(`/assets/gem_${randomColor}.png`);
-        gemSprite.x = col * this.cellSize + this.cellSize / 2;
-        gemSprite.y = row * this.cellSize + this.cellSize / 2;
-        gemSprite.width = this.cellSize * 0.8;
-        const scale = (this.cellSize * 0.8) / gemSprite.texture.width;
-        gemSprite.scale.set(scale);
         gemSprite.anchor.set(0.5);
+        gemSprite.x = this.cellSize / 2;
+        gemSprite.y = this.cellSize / 2;
 
-        this.addChild(gemSprite);
+        const gemTargetSize = this.cellSize * 0.8;
+        const gemScale = gemTargetSize / gemSprite.texture.width;
+        gemSprite.scale.set(gemScale);
+
+        cellContainer.addChild(gemSprite);
+
+        // Add the cell container to board
+        this.addChild(cellContainer);
 
         rowCells.push({
           sprite: gemSprite,
@@ -47,10 +55,10 @@ export class Board extends Container {
       this.cells.push(rowCells);
     }
 
+    // Center the entire board
     this.x = (window.innerWidth - this.gridSize * this.cellSize) / 2;
     this.y = (window.innerHeight - this.gridSize * this.cellSize) / 2;
   }
-
   private getRandomGemColor(): GemColor {
     const randomIndex = Math.floor(Math.random() * GEM_COLORS.length);
     return GEM_COLORS[randomIndex];

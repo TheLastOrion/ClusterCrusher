@@ -5,6 +5,7 @@ import { PreviewQueue } from './components/preview-queue';
 import { useGameStore } from './store';
 import { HUD } from './components/hud';
 import { initDevtools } from '@pixi/devtools';
+import { InputHandler } from './components/input-handler';
 // Create Pixi Application
 const app = new Application({
   resizeTo: window,
@@ -29,6 +30,7 @@ const loaderScene = new LoaderScene(() => {
   const previewQueue = new PreviewQueue();
   app.stage.addChild(previewQueue);
 
+  const inputHandler = new InputHandler(board);
   
   const hud = new HUD();
   app.stage.addChild(hud);

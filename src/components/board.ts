@@ -5,28 +5,36 @@ const GEM_COLORS = ['blue', 'green', 'pink'] as const;
 type GemColor = typeof GEM_COLORS[number];
 
 export class Board extends Container {
-  private readonly gridSize = 5;
-  private readonly cellSize = 80;
-  private cells: Cell[][] = [];
+  private readonly _gridSize = 5;
+  private readonly _cellsize = 80;
+  private _cells: Cell[][] = [];
 
   constructor() {
     super();
     this.buildBoard();
   }
 
+  public getCell(row: number, col: number) {
+    return this._cells[row][col];
+}
+
+  public get gridSize() {
+  return this._gridSize;
+}
+
   private buildBoard() {
-    for (let row = 0; row < this.gridSize; row++) {
+    for (let row = 0; row < this._gridSize; row++) {
       const rowCells: Cell[] = [];
 
-      for (let col = 0; col < this.gridSize; col++) {
-        // Create a container for this cell
+      for (let col = 0; col < this._gridSize; col++) {
+
         const cellContainer = new Container();
-        cellContainer.x = col * this.cellSize;
-        cellContainer.y = row * this.cellSize;
+        cellContainer.x = col * this._cellsize;
+        cellContainer.y = row * this._cellsize;
 
         // Background sprite
         const cellSprite = Sprite.from('/assets/cell.png');
-        const cellScale = this.cellSize / cellSprite.texture.width;
+        const cellScale = this._cellsize / cellSprite.texture.width;
         cellSprite.scale.set(cellScale);
         cellContainer.addChild(cellSprite);
 
@@ -34,10 +42,10 @@ export class Board extends Container {
         const randomColor = this.getRandomGemColor();
         const gemSprite = Sprite.from(`/assets/gem_${randomColor}.png`);
         gemSprite.anchor.set(0.5);
-        gemSprite.x = this.cellSize / 2;
-        gemSprite.y = this.cellSize / 2;
+        gemSprite.x = this._cellsize / 2;
+        gemSprite.y = this._cellsize / 2;
 
-        const gemTargetSize = this.cellSize * 0.8;
+        const gemTargetSize = this._cellsize * 0.8;
         const gemScale = gemTargetSize / gemSprite.texture.width;
         gemSprite.scale.set(gemScale);
 
@@ -52,15 +60,17 @@ export class Board extends Container {
         });
       }
 
-      this.cells.push(rowCells);
+      this._cells.push(rowCells);
     }
 
     // Center the entire board
-    this.x = (window.innerWidth - this.gridSize * this.cellSize) / 2;
-    this.y = (window.innerHeight - this.gridSize * this.cellSize) / 2;
+    this.x = (window.innerWidth - this._gridSize * this._cellsize) / 2;
+    this.y = (window.innerHeight - this._gridSize * this._cellsize) / 2;
   }
   private getRandomGemColor(): GemColor {
     const randomIndex = Math.floor(Math.random() * GEM_COLORS.length);
     return GEM_COLORS[randomIndex];
   }
+
+  
 }

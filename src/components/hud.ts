@@ -2,8 +2,8 @@ import { Container, Text, TextStyle } from 'pixi.js';
 import { useGameStore } from '../store';
 
 export class HUD extends Container {
-  private scoreText: Text;
-  private movesText: Text;
+  private _scoreText: Text;
+  private _movesText: Text;
 
   constructor() {
     super();
@@ -13,17 +13,17 @@ export class HUD extends Container {
       fontSize: 28,
     });
 
-    this.scoreText = new Text('Score: 0', textStyle);
-    this.movesText = new Text('Moves: 25', textStyle);
+    this._scoreText = new Text('Score: 0', textStyle);
+    this._movesText = new Text('Moves: 25', textStyle);
 
-    this.scoreText.x = 30;
-    this.scoreText.y = 30;
+    this._scoreText.x = 30;
+    this._scoreText.y = 30;
 
-    this.movesText.x = 30;
-    this.movesText.y = 70;
+    this._movesText.x = 30;
+    this._movesText.y = 70;
 
-    this.addChild(this.scoreText);
-    this.addChild(this.movesText);
+    this.addChild(this._scoreText);
+    this.addChild(this._movesText);
 
     this.update();
   }
@@ -31,7 +31,7 @@ export class HUD extends Container {
   public update() {
     const state = useGameStore.getState();
 
-    this.scoreText.text = `Score: ${state.score}`;
-    this.movesText.text = `Moves: ${state.moves}`;
+    this._scoreText.text = `Score: ${state.score}`;
+    this._movesText.text = `Moves: ${state.moves}`;
   }
 }

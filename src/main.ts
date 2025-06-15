@@ -36,7 +36,7 @@ const loaderScene = new LoaderScene(() => {
   const hud = new HUD();
   app.stage.addChild(hud);
 
-  const placementHandler = new PlacementHandler(board, previewQueue);
+  const placementHandler = new PlacementHandler(app.stage, board, previewQueue);
 
 
   // Optional live updating (can later be optimized via Zustand subscriptions)

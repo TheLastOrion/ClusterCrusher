@@ -31,6 +31,12 @@ public getCellContainer(row: number, col: number): Container {
   return this._gridSize;
 }
 
+public setCell(row: number, col: number, color: GemColor, sprite: Sprite): void {
+  const cell = this._cells[row][col];
+  cell.color = color;
+  cell.sprite = sprite;
+}
+
 public placeGem(row: number, col: number, color: GemColor) {
   const cell = this._cells[row][col];
   cell.color = color;

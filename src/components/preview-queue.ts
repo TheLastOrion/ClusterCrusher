@@ -62,11 +62,14 @@ export class PreviewQueue extends Container {
     return this._cellSize;
   }
 
-  public get queueSize() {
-    return this._queueSize;
-  }
-
+public get queueSize(): number {
+  return this._queueSize;
+}
   public getGemSprite(index: number): Sprite {
     return this.children[index] as Sprite;
   }
+
+  public getGemColor(index: number): GemColor {
+  return this._queue[index];
+}
 }

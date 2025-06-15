@@ -20,13 +20,13 @@ export class PlacementHandler {
     this._stage.hitArea = this._stage.getBounds();
 
     this.setupBoardDropTargets();
-    this.setupPreviewDragging();
+    this.setupPreviewQueueInteractions();
 
     this._stage.on('pointerup', this.onDragEnd, this);
     this._stage.on('pointerupoutside', this.onDragEnd, this);
   }
 
-  private setupPreviewDragging(): void {
+  private setupPreviewQueueInteractions(): void {
     for (let i = 0; i < this._previewQueue.queueSize; i++) {
       const gemSprite = this._previewQueue.getGemSprite(i);
       gemSprite.interactive = true;
@@ -102,7 +102,7 @@ export class PlacementHandler {
       this._board.setCell(targetRow, targetCol, this._draggedColor, this._draggedGem);
       this._previewQueue.consumeGem(this._draggedIndex);
       this._previewQueue.rebuildQueueSprites();
-      this.setupPreviewDragging();
+      this.setupPreviewQueueInteractions();
 
       console.log(`Placed ${this._draggedColor} at row=${targetRow}, col=${targetCol}`);
     } else {

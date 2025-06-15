@@ -52,11 +52,11 @@ export class PreviewQueue extends Container {
     this.y = 50;
   }
 
-  public consumeGem(index: number): GemColor {
-    const placedGem = this._queue[index];
-    this._queue[index] = this.generateRandomGem();
-    return placedGem;
-  }
+  public consumeGem(index: number, replacement?: GemColor): GemColor {
+  const placedGem = this._queue[index];
+  this._queue[index] = replacement ?? this.generateRandomGem();
+  return placedGem;
+}
 
   public get cellSize() {
     return this._cellSize;

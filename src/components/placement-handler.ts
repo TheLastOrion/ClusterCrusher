@@ -1,6 +1,7 @@
 import { FederatedPointerEvent, Sprite, Container, Point } from 'pixi.js';
 import { Board } from './board';
 import { PreviewQueue, GemColor } from './preview-queue';
+import { ClusterFinder } from './cluster-finder';
 
 export class PlacementHandler {
   private readonly _stage: Container;
@@ -70,58 +71,98 @@ export class PlacementHandler {
   }
 
   private onDragEnd(e: FederatedPointerEvent): void {
-    if (!this._draggedGem || this._draggedIndex === null || this._draggedColor === null) return;
+  if (!this._draggedGem || this._draggedIndex === null || this._draggedColor === null) return;
 
-    const globalPos = e.global;
-    const boardPos = this._board.toLocal(globalPos);
+  const globalPos = e.global;
+  const boardPos = this._board.toLocal(globalPos);
 
-    const targetCol = Math.floor(boardPos.x / this._board.cellSize);
-    const targetRow = Math.floor(boardPos.y / this._board.cellSize);
+  const targetCol = Math.floor(boardPos.x / this._board.cellSize);
+  const targetRow = Math.floor(boardPos.y / this._board.cellSize);
 
-    console.log(`Drag ended at: x=${globalPos.x}, y=${globalPos.y}`);
-    console.log(`Calculated target: row=${targetRow}, col=${targetCol}`);
+  console.log(`Drag ended at: x=${globalPos.x}, y=${globalPos.y}`);
+  console.log(`Calculated target: row=${targetRow}, col=${targetCol}`);
 
-    if (
-      targetRow >= 0 && targetRow < this._board.gridSize &&
-      targetCol >= 0 && targetCol < this._board.gridSize
-    ) {
-      const targetCell = this._board.getCellContainer(targetRow, targetCol);
-      if (targetCell.children.length > 1) {
-        targetCell.removeChildAt(1);
-}
-      targetCell.addChild(this._draggedGem);
+  // Check board bounds first
+  if (
+    targetRow < 0 || targetRow >= this._board.gridSize ||
+    targetCol < 0 || targetCol >= this._board.gridSize
+  ) {
+    console.log('Drop outside board boundaries, canceling move.');
+    this.snapBackToPreview();
+    this.cleanupDrag();
+    return;
+  }
 
-      this._stage.removeChild(this._draggedGem);
-      targetCell.addChild(this._draggedGem);
+  const targetCell = this._board.getCellContainer(targetRow, targetCol);
 
-      this._draggedGem.x = this._board.cellSize / 2;
-      this._draggedGem.y = this._board.cellSize / 2;
-      this._draggedGem.alpha = 1;
-      this._draggedGem.eventMode = 'none';
+  // Store any previous gem (if exists)
+  const previousGem = targetCell.children.length > 1
+    ? targetCell.getChildAt(1) as Sprite
+    : null;
 
-      this._board.setCell(targetRow, targetCol, this._draggedColor, this._draggedGem);
-      this._previewQueue.consumeGem(this._draggedIndex);
-      this._previewQueue.rebuildQueueSprites();
-      this.setupPreviewQueueInteractions();
+  this._stage.removeChild(this._draggedGem);
+  targetCell.addChild(this._draggedGem);
 
-      console.log(`Placed ${this._draggedColor} at row=${targetRow}, col=${targetCol}`);
-    } else {
-        this._stage.removeChild(this._draggedGem);
-        this._previewQueue.addChild(this._draggedGem);
-        this._draggedGem.position.set(this._previewQueue.cellSize / 2, this._draggedIndex * (this._previewQueue.cellSize + 10) + this._previewQueue.cellSize / 2);
-        this._draggedGem.alpha = 1;
-        this._draggedGem.eventMode = 'static';
-        console.log('Drop cancelled or outside board boundaries.');
-        this._draggedGem.alpha = 1;
+  this._draggedGem.x = this._board.cellSize / 2;
+  this._draggedGem.y = this._board.cellSize / 2;
+  this._draggedGem.alpha = 1;
+  this._draggedGem.eventMode = 'none';
+
+  this._board.setCell(targetRow, targetCol, this._draggedColor, this._draggedGem);
+
+  const clusterFinder = new ClusterFinder(this._board);
+  const clusters = clusterFinder.findClusters();
+
+  const involved = clusters.some(cluster =>
+    cluster.positions.some(pos => pos.row === targetRow && pos.col === targetCol)
+  );
+
+  if (clusters.length > 0 && involved) {
+    console.log('Clusters found:', clusters);
+
+    if (previousGem) {
+      targetCell.removeChild(previousGem);
+      previousGem.destroy();
     }
 
-    this._stage.off('pointermove', this.onDragMove, this);
+    this._board.crushClusters(clusters);
+    this._board.refillBoard();
 
+    this._previewQueue.consumeGem(this._draggedIndex);
+    this._previewQueue.rebuildQueueSprites();
+    this.setupPreviewQueueInteractions();
+
+  } else {
+    console.log('No valid cluster — invalid move, undoing placement.');
+
+    // Undo provisional placement: restore previous state
+    targetCell.removeChild(this._draggedGem);
+
+    if (previousGem) {
+      targetCell.addChild(previousGem);
+    }
+
+    this.snapBackToPreview();
+  }
+
+  console.log(`Placement finalized: row=${targetRow}, col=${targetCol}`);
+  this.cleanupDrag();
+}
+
+  private snapBackToPreview(): void {
+    this._previewQueue.addChild(this._draggedGem!);
+    this._draggedGem!.x = this._previewQueue.cellSize / 2;
+    this._draggedGem!.y = this._draggedIndex! * (this._previewQueue.cellSize + 10) + this._previewQueue.cellSize / 2;
+    this._draggedGem!.alpha = 1;
+    this._draggedGem!.eventMode = 'static';
+  }
+
+  private cleanupDrag(): void {
+    this._stage.off('pointermove', this.onDragMove, this);
     this._draggedGem = null;
     this._draggedIndex = null;
     this._draggedColor = null;
   }
-
   private setupBoardDropTargets(): void {
     for (let row = 0; row < this._board.gridSize; row++) {
       for (let col = 0; col < this._board.gridSize; col++) {

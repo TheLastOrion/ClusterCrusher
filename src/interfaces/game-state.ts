@@ -1,6 +1,6 @@
 type GameStatus = 'loading' | 'playing' | 'won' | 'lost';
 
-interface GameState {
+export interface GameState {
   score: number;
   moves: number;
   gameStatus: GameStatus;

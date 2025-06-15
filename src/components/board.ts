@@ -1,5 +1,6 @@
 import { Container, Sprite } from 'pixi.js';
 import { Cell } from '../interfaces/cell';
+import { Cluster } from '../interfaces/cluster';
 
 const GEM_COLORS = ['blue', 'green', 'pink'] as const;
 type GemColor = typeof GEM_COLORS[number];
@@ -43,6 +44,67 @@ public placeGem(row: number, col: number, color: GemColor) {
   cell.sprite.texture = Sprite.from(`/assets/gem_${color}.png`).texture;
 }
 
+
+public crushClusters(clusters: Cluster[]): void {
+  for (const cluster of clusters) {
+    for (const pos of cluster.positions) {
+      const container = this.getCellContainer(pos.row, pos.col);
+
+      // Always preserve cell background, so remove only gem sprite
+      if (container.children.length > 1) {
+        const gemSprite = container.getChildAt(1) as Sprite;
+        container.removeChild(gemSprite);
+        gemSprite.destroy();
+      }
+    }
+  }
+}
+
+public refillBoard(): void {
+  for (let row = 0; row < this.gridSize; row++) {
+    for (let col = 0; col < this.gridSize; col++) {
+      const container = this.getCellContainer(row, col);
+
+      if (container.children.length === 1) {
+        // Cell is empty (only background exists)
+
+        const color = this.generateRandomGem();
+        const gemSprite = Sprite.from(`/assets/gem_${color}.png`);
+        gemSprite.anchor.set(0.5);
+        gemSprite.x = this.cellSize / 2;
+        gemSprite.y = this.cellSize / 2;
+        gemSprite.scale.set(0);  // start scaled down for pop-in
+
+        container.addChild(gemSprite);
+        this.animatePop(gemSprite, 1);
+      }
+    }
+  }
+}
+
+private generateRandomGem(): GemColor {
+  const colors: GemColor[] = ['blue', 'green', 'pink'];
+  return colors[Math.floor(Math.random() * colors.length)];
+}
+
+private animatePop(sprite: Sprite, targetScale: number = 1): void {
+  const duration = 300;
+  const start = performance.now();
+
+  const animate = (time: number) => {
+    const elapsed = time - start;
+    const progress = Math.min(elapsed / duration, 1);
+    const scale = targetScale * progress;
+
+    sprite.scale.set(scale, scale);
+
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    }
+  };
+
+  requestAnimationFrame(animate);
+}
   private buildBoard() {
     for (let row = 0; row < this._gridSize; row++) {
       const rowCells: Cell[] = [];

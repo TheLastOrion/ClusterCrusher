@@ -1,6 +1,6 @@
 import { Container, Sprite } from 'pixi.js';
+import { GEM_COLORS } from '../constants';
 
-const GEM_COLORS = ['blue', 'green', 'pink'] as const;
 export type GemColor = typeof GEM_COLORS[number];
 
 export class PreviewQueue extends Container {

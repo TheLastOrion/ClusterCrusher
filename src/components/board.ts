@@ -1,9 +1,8 @@
 import { Container, Sprite } from 'pixi.js';
-import { Cell } from '../interfaces/cell';
+import { Cell, GemColor } from '../interfaces/cell';
 import { Cluster } from '../interfaces/cluster';
+import { GEM_COLORS } from '../constants';
 
-const GEM_COLORS = ['blue', 'green', 'pink'] as const;
-type GemColor = typeof GEM_COLORS[number];
 
 export class Board extends Container {
   private readonly _gridSize = 5;
@@ -98,7 +97,7 @@ public refillBoard(): void {
 
 
 private generateRandomGem(): GemColor {
-  const colors: GemColor[] = ['blue', 'green', 'pink'];
+  const colors: GemColor[] = Array.from(GEM_COLORS);
   return colors[Math.floor(Math.random() * colors.length)];
 }
 

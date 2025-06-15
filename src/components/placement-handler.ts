@@ -2,6 +2,9 @@ import { FederatedPointerEvent, Sprite, Container, Point } from 'pixi.js';
 import { Board } from './board';
 import { PreviewQueue, GemColor } from './preview-queue';
 import { ClusterFinder } from './cluster-finder';
+import { useGameStore } from '../store';
+import { Cluster } from '../interfaces/cluster';
+
 
 export class PlacementHandler {
   private readonly _stage: Container;
@@ -111,7 +114,21 @@ export class PlacementHandler {
   this._board.setCell(targetRow, targetCol, this._draggedColor, this._draggedGem);
 
   const clusterFinder = new ClusterFinder(this._board);
-  const clusters = clusterFinder.findClusters();
+  let clusters: Cluster[];
+
+  // Toggle this flag as desired:
+  const useStrictPlacementDetection = true;
+  
+  if (useStrictPlacementDetection) {
+    clusters = clusterFinder.findClusters(
+    true, 
+    targetRow, 
+    targetCol, 
+    this._draggedColor);
+  }
+  else {
+    clusters = clusterFinder.findClusters(false);
+  }
   const validClusters = clusters.filter(cluster =>
   cluster.color === this._draggedColor &&
   cluster.positions.some(pos => pos.row === targetRow && pos.col === targetCol)
@@ -119,32 +136,42 @@ export class PlacementHandler {
 
 
   if (validClusters.length > 0) {
-    console.log('Clusters found:', validClusters);
+  console.log('Clusters found:', validClusters);
 
-    if (previousGem) {
-      targetCell.removeChild(previousGem);
-      previousGem.destroy();
-    }
-
-    this._board.crushClusters(validClusters);
-    this._board.refillBoard();
-
-    this._previewQueue.consumeGem(this._draggedIndex);
-    this._previewQueue.rebuildQueueSprites();
-    this.setupPreviewQueueInteractions();
-
-  } else {
-    console.log('No valid cluster — invalid move, undoing placement.');
-
-    // Undo provisional placement: restore previous state
-    targetCell.removeChild(this._draggedGem);
-
-    if (previousGem) {
-      targetCell.addChild(previousGem);
-    }
-
-    this.snapBackToPreview();
+  if (previousGem) {
+    targetCell.removeChild(previousGem);
+    previousGem.destroy();
   }
+
+  this._board.crushClusters(validClusters);
+  this._board.refillBoard();
+
+  // ✅ Calculate score using formula: (N - 2)^2 × 10
+  let totalScore = 0;
+  for (const cluster of validClusters) {
+    const clusterSize = cluster.positions.length;
+    const clusterScore = Math.pow(clusterSize - 2, 2) * 10;
+    totalScore += clusterScore;
+  }
+
+  useGameStore.getState().addScore(totalScore);
+  useGameStore.getState().useMove();
+
+  this._previewQueue.consumeGem(this._draggedIndex);
+  this._previewQueue.rebuildQueueSprites();
+  this.setupPreviewQueueInteractions();
+
+} else {
+  console.log('No valid cluster — invalid move, undoing placement.');
+
+  targetCell.removeChild(this._draggedGem);
+
+  if (previousGem) {
+    targetCell.addChild(previousGem);
+  }
+
+  this.snapBackToPreview();
+}
 
   console.log(`Placement finalized: row=${targetRow}, col=${targetCol}`);
   this.cleanupDrag();

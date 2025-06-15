@@ -7,6 +7,7 @@ import { HUD } from './components/hud';
 import { initDevtools } from '@pixi/devtools';
 import { InputHandler } from './components/input-handler';
 import { PlacementHandler } from './components/placement-handler';
+import { EndGameModal } from './components/end-game-modal';
 // Create Pixi Application
 const app = new Application({
   resizeTo: window,
@@ -38,10 +39,13 @@ const loaderScene = new LoaderScene(() => {
 
   const placementHandler = new PlacementHandler(app.stage, board, previewQueue);
 
-
+  const modal = new EndGameModal();
+  app.stage.addChild(modal);
   // Optional live updating (can later be optimized via Zustand subscriptions)
   app.ticker.add(() => {
     hud.update();
+    modal.update();
+
   });
 });
 

@@ -15,7 +15,24 @@ export class ClusterFinder {
     );
   }
 
-  public findClusters(): Cluster[] {
+  /**
+   * Main entry point — calls appropriate algorithm depending on flag.
+   */
+  public findClusters(useStrictPlacementDetection: boolean, row?: number, col?: number, color?: GemColor): Cluster[] {
+    if (useStrictPlacementDetection) {
+      if (row === undefined || col === undefined || color === undefined) {
+        throw new Error('Strict placement mode requires position and color!');
+      }
+      return this.findClustersFromPlacement(row, col, color);
+    } else {
+      return this.findClustersFullBoard();
+    }
+  }
+
+  /**
+   * FULL BOARD BFS CLUSTER DETECTION (our v2 system)
+   */
+  private findClustersFullBoard(): Cluster[] {
     const clusters: Cluster[] = [];
 
     for (let row = 0; row < this._gridSize; row++) {
@@ -77,7 +94,6 @@ export class ClusterFinder {
     const rowMap = new Map<number, number[]>();
     const colMap = new Map<number, number[]>();
 
-    // Group positions by row and column
     for (const pos of cluster) {
       if (!rowMap.has(pos.row)) rowMap.set(pos.row, []);
       rowMap.get(pos.row)!.push(pos.col);
@@ -86,7 +102,6 @@ export class ClusterFinder {
       colMap.get(pos.col)!.push(pos.row);
     }
 
-    // Check horizontal lines
     for (const [, cols] of rowMap) {
       cols.sort((a, b) => a - b);
       let count = 1;
@@ -100,7 +115,6 @@ export class ClusterFinder {
       }
     }
 
-    // Check vertical lines
     for (const [, rows] of colMap) {
       rows.sort((a, b) => a - b);
       let count = 1;
@@ -115,5 +129,54 @@ export class ClusterFinder {
     }
 
     return false;
+  }
+
+  /**
+   * STRICT PLACEMENT DETECTION (fast cross-scan)
+   */
+  private findClustersFromPlacement(row: number, col: number, color: GemColor): Cluster[] {
+    const clusters: Cluster[] = [];
+
+    const horizontal: { row: number; col: number }[] = [{ row, col }];
+
+    // Check left
+    let c = col - 1;
+    while (c >= 0 && this._board.getCell(row, c)?.color === color) {
+      horizontal.unshift({ row, col: c });
+      c--;
+    }
+
+    // Check right
+    c = col + 1;
+    while (c < this._gridSize && this._board.getCell(row, c)?.color === color) {
+      horizontal.push({ row, col: c });
+      c++;
+    }
+
+    if (horizontal.length >= 3) {
+      clusters.push({ color, positions: horizontal });
+    }
+
+    const vertical: { row: number; col: number }[] = [{ row, col }];
+
+    // Check up
+    let r = row - 1;
+    while (r >= 0 && this._board.getCell(r, col)?.color === color) {
+      vertical.unshift({ row: r, col });
+      r--;
+    }
+
+    // Check down
+    r = row + 1;
+    while (r < this._gridSize && this._board.getCell(r, col)?.color === color) {
+      vertical.push({ row: r, col });
+      r++;
+    }
+
+    if (vertical.length >= 3) {
+      clusters.push({ color, positions: vertical });
+    }
+
+    return clusters;
   }
 }

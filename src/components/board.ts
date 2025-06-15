@@ -60,34 +60,49 @@ public crushClusters(clusters: Cluster[]): void {
   }
 }
 
+private calculateGemScale(): number {
+  const gemTargetSize = this._cellSize * 0.8;
+  const dummyTexture = Sprite.from(`/assets/gem_blue.png`).texture;
+  return gemTargetSize / dummyTexture.width;
+}
+
 public refillBoard(): void {
+  const gemScale = this.calculateGemScale();
+
   for (let row = 0; row < this.gridSize; row++) {
     for (let col = 0; col < this.gridSize; col++) {
       const container = this.getCellContainer(row, col);
 
       if (container.children.length === 1) {
-        // Cell is empty (only background exists)
-
         const color = this.generateRandomGem();
         const gemSprite = Sprite.from(`/assets/gem_${color}.png`);
+
         gemSprite.anchor.set(0.5);
         gemSprite.x = this.cellSize / 2;
         gemSprite.y = this.cellSize / 2;
-        gemSprite.scale.set(0);  // start scaled down for pop-in
 
+        // ✅ Start with scale 0 but target the gemScale
+        gemSprite.scale.set(0); 
+
+        
         container.addChild(gemSprite);
-        this.animatePop(gemSprite, 1);
+
+        this.animatePop(gemSprite, gemScale);
+
+        this._cells[row][col].color = color;
+        this._cells[row][col].sprite = gemSprite;
       }
     }
   }
 }
+
 
 private generateRandomGem(): GemColor {
   const colors: GemColor[] = ['blue', 'green', 'pink'];
   return colors[Math.floor(Math.random() * colors.length)];
 }
 
-private animatePop(sprite: Sprite, targetScale: number = 1): void {
+private animatePop(sprite: Sprite, targetScale: number): void {
   const duration = 300;
   const start = performance.now();
 
@@ -105,6 +120,7 @@ private animatePop(sprite: Sprite, targetScale: number = 1): void {
 
   requestAnimationFrame(animate);
 }
+
   private buildBoard() {
     for (let row = 0; row < this._gridSize; row++) {
       const rowCells: Cell[] = [];

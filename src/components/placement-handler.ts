@@ -112,20 +112,21 @@ export class PlacementHandler {
 
   const clusterFinder = new ClusterFinder(this._board);
   const clusters = clusterFinder.findClusters();
+  const validClusters = clusters.filter(cluster =>
+  cluster.color === this._draggedColor &&
+  cluster.positions.some(pos => pos.row === targetRow && pos.col === targetCol)
+);
 
-  const involved = clusters.some(cluster =>
-    cluster.positions.some(pos => pos.row === targetRow && pos.col === targetCol)
-  );
 
-  if (clusters.length > 0 && involved) {
-    console.log('Clusters found:', clusters);
+  if (validClusters.length > 0) {
+    console.log('Clusters found:', validClusters);
 
     if (previousGem) {
       targetCell.removeChild(previousGem);
       previousGem.destroy();
     }
 
-    this._board.crushClusters(clusters);
+    this._board.crushClusters(validClusters);
     this._board.refillBoard();
 
     this._previewQueue.consumeGem(this._draggedIndex);

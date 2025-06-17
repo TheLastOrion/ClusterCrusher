@@ -1,5 +1,6 @@
 import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 import { useGameStore } from '../store';
+import { saveToLeaderboard } from './leaderboard';
 
 export class EndGameModal extends Container {
   private readonly _messageText: Text;
@@ -56,12 +57,15 @@ export class EndGameModal extends Container {
   }
 
   public update(): void {
-    const { gameStatus } = useGameStore.getState();
+    const { gameStatus, score } = useGameStore.getState(); // Access the score from the store
 
     // Show message based on game status (after 25 moves)
     if (gameStatus === 'won') {
       this._messageText.text = 'You Win!';
       this.visible = true;
+
+      // Save the score to leaderboard when the game ends
+      saveToLeaderboard(score);  // Save score when the game ends (won or lost)
     } else if (gameStatus === 'lost') {
       this._messageText.text = 'Game Over';
       this.visible = true;

@@ -1,5 +1,5 @@
 import create from 'zustand';
-import { GameState, GameStatus } from './interfaces/game-state';
+import { GameState } from './interfaces/game-state';
 
 export const useGameStore = create<GameState>((set, get) => ({
   score: 0,

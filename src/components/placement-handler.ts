@@ -70,7 +70,7 @@ export class PlacementHandler {
     this._draggedGem.x = e.global.x;
     this._draggedGem.y = e.global.y;
 
-    console.log(`Dragging at: x=${e.global.x}, y=${e.global.y}`);
+    // console.log(`Dragging at: x=${e.global.x}, y=${e.global.y}`);
   }
 
   private onDragEnd(e: FederatedPointerEvent): void {
@@ -81,9 +81,6 @@ export class PlacementHandler {
 
   const targetCol = Math.floor(boardPos.x / this._board.cellSize);
   const targetRow = Math.floor(boardPos.y / this._board.cellSize);
-
-  console.log(`Drag ended at: x=${globalPos.x}, y=${globalPos.y}`);
-  console.log(`Calculated target: row=${targetRow}, col=${targetCol}`);
 
   // Check board bounds first
   if (
@@ -116,62 +113,64 @@ export class PlacementHandler {
   const clusterFinder = new ClusterFinder(this._board);
   let clusters: Cluster[];
 
-  // Toggle this flag as desired:
   const useStrictPlacementDetection = true;
-  
+
   if (useStrictPlacementDetection) {
     clusters = clusterFinder.findClusters(
-    true, 
-    targetRow, 
-    targetCol, 
-    this._draggedColor);
-  }
-  else {
+      true, 
+      targetRow, 
+      targetCol, 
+      this._draggedColor
+    );
+  } else {
     clusters = clusterFinder.findClusters(false);
   }
-  const validClusters = clusters.filter(cluster =>
-  cluster.color === this._draggedColor &&
-  cluster.positions.some(pos => pos.row === targetRow && pos.col === targetCol)
-);
 
+  const validClusters = clusters.filter(cluster =>
+    cluster.color === this._draggedColor &&
+    cluster.positions.some(pos => pos.row === targetRow && pos.col === targetCol)
+  );
 
   if (validClusters.length > 0) {
-  console.log('Clusters found:', validClusters);
+    console.log('Clusters found:', validClusters);
 
-  if (previousGem) {
-    targetCell.removeChild(previousGem);
-    previousGem.destroy();
+    if (previousGem) {
+      targetCell.removeChild(previousGem);
+      previousGem.destroy();
+    }
+
+    this._board.crushClusters(validClusters);
+    this._board.refillBoard();
+
+    // Calculate score using formula: (N - 2)^2 × 10
+    let totalScore = 0;
+    for (const cluster of validClusters) {
+      const clusterSize = cluster.positions.length;
+      const clusterScore = Math.pow(clusterSize - 2, 2) * 10;
+      totalScore += clusterScore;
+    }
+
+    useGameStore.getState().addScore(totalScore);
+    useGameStore.getState().useMove();
+
+    this._previewQueue.consumeGem(this._draggedIndex);
+    this._previewQueue.rebuildQueueSprites();
+    this.setupPreviewQueueInteractions();
+
+  } else {
+    console.log('No valid cluster — invalid move, undoing placement.');
+
+    targetCell.removeChild(this._draggedGem);
+
+    if (previousGem) {
+      targetCell.addChild(previousGem);
+    }
+
+    this.snapBackToPreview();
+
+    // Check for reshuffling if no valid moves are left
+    this.reshuffleIfNeeded();  // This will now check and reshuffle the board if needed
   }
-
-  this._board.crushClusters(validClusters);
-  this._board.refillBoard();
-
-  // ✅ Calculate score using formula: (N - 2)^2 × 10
-  let totalScore = 0;
-  for (const cluster of validClusters) {
-    const clusterSize = cluster.positions.length;
-    const clusterScore = Math.pow(clusterSize - 2, 2) * 10;
-    totalScore += clusterScore;
-  }
-
-  useGameStore.getState().addScore(totalScore);
-  useGameStore.getState().useMove();
-
-  this._previewQueue.consumeGem(this._draggedIndex);
-  this._previewQueue.rebuildQueueSprites();
-  this.setupPreviewQueueInteractions();
-
-} else {
-  console.log('No valid cluster — invalid move, undoing placement.');
-
-  targetCell.removeChild(this._draggedGem);
-
-  if (previousGem) {
-    targetCell.addChild(previousGem);
-  }
-
-  this.snapBackToPreview();
-}
 
   console.log(`Placement finalized: row=${targetRow}, col=${targetCol}`);
   this.cleanupDrag();
@@ -200,4 +199,72 @@ export class PlacementHandler {
       }
     }
   }
+  
+  private canMakeValidMove(): boolean {
+  const clusterFinder = new ClusterFinder(this._board);
+  const allPossibleMoves: { row: number, col: number }[] = [];
+
+  // Check each gem in the preview queue
+  for (let i = 0; i < this._previewQueue.queueSize; i++) {
+    const gemColor = this._previewQueue.getGemColor(i);
+    
+    // Try placing this gem at each empty spot on the board
+    for (let row = 0; row < this._board.gridSize; row++) {
+      for (let col = 0; col < this._board.gridSize; col++) {
+        const targetCell = this._board.getCell(row, col);
+        if (!targetCell.color) {  // Check only empty cells
+          // Temporarily place the gem
+          this._board.setCell(row, col, gemColor, targetCell.sprite);
+
+          // Check if any clusters form
+          const clusters = clusterFinder.findClusters(false);
+          if (clusters.length > 0) {
+            return true;  // Valid move found
+          }
+
+          // Reset the placement if no clusters
+          this._board.setCell(row, col, '', targetCell.sprite);  // Assuming empty string means no gem
+        }
+      }
+    }
+  }
+
+  return false;  // No valid moves found
+}
+
+private reshuffleBoard(): boolean {
+  let attempts = 0;
+  const maxAttempts = 10;
+
+  // Try reshuffling up to 10 times
+  while (attempts < maxAttempts) {
+    this._board.refillBoard();
+    const clusterFinder = new ClusterFinder(this._board);
+    const clusters = clusterFinder.findClusters(false); // No strict placement mode
+
+    if (clusters.length > 0) {
+      return true; // Successfully reshuffled with valid clusters
+    }
+
+    attempts++;
+  }
+
+  return false; // Failed to reshuffle within max attempts
+}
+private reshuffleIfNeeded(): void {
+  const validMove = this.canMakeValidMove();
+
+  if (!validMove) {
+    console.log('No valid moves — reshuffling the board!');
+    const reshuffleSuccess = this.reshuffleBoard();
+    if (reshuffleSuccess) {
+      console.log('Board reshuffled successfully.');
+    } else {
+      console.log('Failed to reshuffle after max attempts.');
+    }
+  }
+  else {
+    console.log('A valid move is found');
+  }
+}
 }

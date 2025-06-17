@@ -2,6 +2,7 @@ import { Container, Sprite } from 'pixi.js';
 import { Cell, GemColor } from '../interfaces/cell';
 import { Cluster } from '../interfaces/cluster';
 import { GEM_COLORS } from '../constants';
+import { ClusterFinder } from './cluster-finder';
 
 
 export class Board extends Container {
@@ -65,8 +66,10 @@ private calculateGemScale(): number {
   return gemTargetSize / dummyTexture.width;
 }
 
-public refillBoard(): void {
+public refillBoard(): boolean {
   const gemScale = this.calculateGemScale();
+
+  let clustersExist = false;
 
   for (let row = 0; row < this.gridSize; row++) {
     for (let col = 0; col < this.gridSize; col++) {
@@ -93,6 +96,14 @@ public refillBoard(): void {
       }
     }
   }
+  const clusterFinder = new ClusterFinder(this);
+  const clusters = clusterFinder.findClusters(false);  // Find clusters across the entire board
+
+  if (clusters.length > 0) {
+    clustersExist = true; // Valid clusters found
+  }
+
+  return clustersExist;  // Return whether valid clusters exist
 }
 
 

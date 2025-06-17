@@ -9,15 +9,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   addScore: (amount: number) => {
     set((state) => {
       const newScore = state.score + amount;
-      let newStatus = state.gameStatus;
-
-      if (newScore >= 500) {
-        newStatus = 'won';
-      } else if (state.moves >= 25) {
-        newStatus = 'lost';
-      }
-
-      return { score: newScore, gameStatus: newStatus };
+      return { score: newScore };
     });
   },
 
@@ -26,10 +18,13 @@ export const useGameStore = create<GameState>((set, get) => ({
       const newMoves = state.moves + 1;
       let newStatus = state.gameStatus;
 
-      if (newMoves >= 25 && state.score < 500) {
-        newStatus = 'lost';
-      } else if (state.score >= 500) {
-        newStatus = 'won';
+      // After 25 moves, check win/lose condition
+      if (newMoves >= 25) {
+        if (state.score >= 500) {
+          newStatus = 'won'; // Win after 25 moves if score >= 500
+        } else {
+          newStatus = 'lost'; // Lose after 25 moves if score < 500
+        }
       }
 
       return { moves: newMoves, gameStatus: newStatus };

@@ -58,6 +58,7 @@ export class EndGameModal extends Container {
   public update(): void {
     const { gameStatus } = useGameStore.getState();
 
+    // Show message based on game status (after 25 moves)
     if (gameStatus === 'won') {
       this._messageText.text = 'You Win!';
       this.visible = true;

@@ -93,15 +93,22 @@ export class PlacementHandler {
     return;
   }
 
-  const targetCell = this._board.getCellContainer(targetRow, targetCol);
+  const targetCell = this._board.getCell(targetRow, targetCol);
+  const targetCellContainer = this._board.getCellContainer(targetRow, targetCol);
 
+  if (targetCell.color === this._draggedColor) {
+    console.log('Cannot place gem on tile with the same color.');
+    this.snapBackToPreview();
+    this.cleanupDrag();
+    return;
+  }
   // Store any previous gem (if exists)
-  const previousGem = targetCell.children.length > 1
-    ? targetCell.getChildAt(1) as Sprite
+  const previousGem = targetCellContainer.children.length > 1
+    ? targetCellContainer.getChildAt(1) as Sprite
     : null;
 
   this._stage.removeChild(this._draggedGem);
-  targetCell.addChild(this._draggedGem);
+  targetCellContainer.addChild(this._draggedGem);
 
   this._draggedGem.x = this._board.cellSize / 2;
   this._draggedGem.y = this._board.cellSize / 2;
@@ -135,7 +142,7 @@ export class PlacementHandler {
     console.log('Clusters found:', validClusters);
 
     if (previousGem) {
-      targetCell.removeChild(previousGem);
+      targetCellContainer.removeChild(previousGem);
       previousGem.destroy();
     }
 
@@ -160,10 +167,10 @@ export class PlacementHandler {
   } else {
     console.log('No valid cluster — invalid move, undoing placement.');
 
-    targetCell.removeChild(this._draggedGem);
+    targetCellContainer.removeChild(this._draggedGem);
 
     if (previousGem) {
-      targetCell.addChild(previousGem);
+      targetCellContainer.addChild(previousGem);
     }
 
     this.snapBackToPreview();
@@ -200,36 +207,39 @@ export class PlacementHandler {
     }
   }
   
-  private canMakeValidMove(): boolean {
+private canMakeValidMove(): boolean {
   const clusterFinder = new ClusterFinder(this._board);
-  const allPossibleMoves: { row: number, col: number }[] = [];
-
-  // Check each gem in the preview queue
+  
+  // Try placing each preview queue gem in every empty spot on the board
   for (let i = 0; i < this._previewQueue.queueSize; i++) {
     const gemColor = this._previewQueue.getGemColor(i);
-    
-    // Try placing this gem at each empty spot on the board
+
+    // Try placing this gem in every empty cell on the board
     for (let row = 0; row < this._board.gridSize; row++) {
       for (let col = 0; col < this._board.gridSize; col++) {
         const targetCell = this._board.getCell(row, col);
-        if (!targetCell.color) {  // Check only empty cells
+        
+        // Only check empty cells
+        if (!targetCell.color) {
           // Temporarily place the gem
           this._board.setCell(row, col, gemColor, targetCell.sprite);
 
-          // Check if any clusters form
+          // Check if any clusters are formed after this placement
           const clusters = clusterFinder.findClusters(false);
           if (clusters.length > 0) {
-            return true;  // Valid move found
+            // If a valid cluster is found, return true
+            return true;
           }
 
-          // Reset the placement if no clusters
+          // Reset the cell if no clusters were formed
           this._board.setCell(row, col, '', targetCell.sprite);  // Assuming empty string means no gem
         }
       }
     }
   }
 
-  return false;  // No valid moves found
+  // No valid moves found
+  return false;
 }
 
 private reshuffleBoard(): boolean {
@@ -256,15 +266,12 @@ private reshuffleIfNeeded(): void {
 
   if (!validMove) {
     console.log('No valid moves — reshuffling the board!');
-    const reshuffleSuccess = this.reshuffleBoard();
-    if (reshuffleSuccess) {
-      console.log('Board reshuffled successfully.');
+    const reshuffleSuccess = this._board.refillBoard();  // Call refillBoard to reshuffle
+    if (!reshuffleSuccess) {
+      console.log('Failed to reshuffle and find valid moves.');
     } else {
-      console.log('Failed to reshuffle after max attempts.');
+      console.log('Reshuffling was successful, valid moves are now available.');
     }
-  }
-  else {
-    console.log('A valid move is found');
   }
 }
 }
